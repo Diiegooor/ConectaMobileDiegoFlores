@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="purple_500">#6200EE</color>
+    <color name="teal_200">#03DAC5</color>
+    <color name="background_main">#F5F5F5</color> <!-- Fondo principal gris claro -->
+    <color name="background_login">#FFFFFF</color> <!-- Fondo blanco para login -->
+    <color name="background_register">#FFF3E0</color> <!-- Fondo cálido para registro -->
+    <color name="button_primary">#6200EE</color> <!-- Botones principales -->
+    <color name="button_secondary">#03DAC6</color> <!-- Botones secundarios -->
+    <color name="text_primary">#000000</color> <!-- Texto negro -->
+    <color name="text_hint">#808080</color> <!-- Texto de ayuda -->
+    <color name="background_blue">#1E88E5</color>
+    <color name="background_light_blue">#A4C4D9</color>
+
+
+</resources>

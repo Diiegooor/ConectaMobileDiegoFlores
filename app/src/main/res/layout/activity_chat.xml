@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light_blue"
+    android:orientation="vertical">
+
+    <!-- Título del chat -->
+    <TextView
+        android:id="@+id/chatTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Chat"
+        android:textSize="18sp"
+        android:padding="16dp" />
+
+    <!-- ListView para mostrar los mensajes -->
+    <ListView
+        android:id="@+id/messagesListView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Campo de entrada para el mensaje -->
+    <EditText
+        android:id="@+id/messageInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Escribe tu mensaje"
+        android:padding="16dp" />
+
+    <!-- Botón para enviar el mensaje -->
+    <Button
+        android:id="@+id/sendButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Enviar"
+        android:padding="16dp" />
+
+</LinearLayout>

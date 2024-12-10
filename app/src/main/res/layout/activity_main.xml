@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@color/background_light_blue"
+    android:gravity="center">
+
+    <!-- Imagen de inicio de sesión -->
+    <ImageView
+        android:id="@+id/loginImage"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:src="@drawable/login"
+        android:contentDescription="Imagen de inicio de sesión"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Campo para correo electrónico -->
+    <EditText
+        android:id="@+id/emailInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Correo Electrónico"
+        android:inputType="textEmailAddress"
+        android:padding="12dp" />
+
+    <!-- Campo para contraseña -->
+    <EditText
+        android:id="@+id/passwordInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Contraseña"
+        android:inputType="textPassword"
+        android:padding="12dp"
+        android:layout_marginTop="8dp" />
+
+    <!-- Botón para iniciar sesión -->
+    <Button
+        android:id="@+id/loginButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Iniciar Sesión"
+        android:backgroundTint="@color/button_primary"
+        android:textColor="@color/white"
+        android:layout_marginTop="16dp" />
+
+    <!-- Botón para registrarse -->
+    <Button
+        android:id="@+id/registerButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="¿No tienes cuenta? Regístrate"
+        android:backgroundTint="@color/button_secondary"
+        android:textColor="@color/white"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout>
