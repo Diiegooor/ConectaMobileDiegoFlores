@@ -44,11 +44,12 @@ public class activity_contacts extends AppCompatActivity {
         // Referencias a los elementos de la interfaz
         searchInput = findViewById(R.id.searchInput);
         addContactButton = findViewById(R.id.addContactButton);
+        Button addUserButton = findViewById(R.id.addUserButton); // Nuevo botón para añadir usuario
         contactListView = findViewById(R.id.contactListView);
 
         // Inicialización de la lista y el adaptador
         contactList = new ArrayList<>();
-        contactIdMap = new HashMap<>(); // Inicializar el mapeo de nombres a IDs
+        contactIdMap = new HashMap<>();
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, contactList);
         contactListView.setAdapter(adapter);
 
@@ -62,6 +63,12 @@ public class activity_contacts extends AppCompatActivity {
         // Acción al hacer clic en el botón de agregar contacto
         addContactButton.setOnClickListener(v -> addContact());
 
+        // Acción al hacer clic en el botón de añadir usuario
+        addUserButton.setOnClickListener(v -> {
+            Intent intent = new Intent(activity_contacts.this, AddUserActivity.class);
+            startActivity(intent);
+        });
+
         // Configurar el evento de clic en un contacto
         contactListView.setOnItemClickListener((parent, view, position, id) -> {
             String selectedContactName = contactList.get(position);
@@ -73,13 +80,24 @@ public class activity_contacts extends AppCompatActivity {
             }
         });
 
+        // Configurar el evento de long click para eliminar un contacto
+        contactListView.setOnItemLongClickListener((parent, view, position, id) -> {
+            String selectedContactName = contactList.get(position);
+            String contactId = contactIdMap.get(selectedContactName); // Obtener el ID correspondiente al nombre
+            if (contactId != null) {
+                showDeleteContactDialog(selectedContactName, contactId);
+            } else {
+                Toast.makeText(activity_contacts.this, "Error: No se pudo obtener el ID del contacto", Toast.LENGTH_SHORT).show();
+            }
+            return true; // Indica que el evento fue manejado
+        });
+
         Button editProfileButton = findViewById(R.id.editProfileButton);
 
         editProfileButton.setOnClickListener(v -> {
             Intent intent = new Intent(activity_contacts.this, UserProfileActivity.class);
             startActivity(intent);
         });
-
     }
 
     // Cargar los contactos del usuario actual
@@ -90,12 +108,22 @@ public class activity_contacts extends AppCompatActivity {
         contactsRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                contactList.clear(); // Limpiar lista antes de recargar
+                contactList.clear(); // Limpiar la lista antes de recargar
                 contactIdMap.clear(); // Limpiar el mapeo de IDs
+
                 for (DataSnapshot contactSnapshot : snapshot.getChildren()) {
                     String contactId = contactSnapshot.getKey();
-                    loadContactDetails(contactId); // Cargar detalles de cada contacto
+                    String name = contactSnapshot.child("name").getValue(String.class);
+                    String topic = contactSnapshot.child("topic").getValue(String.class);
+
+                    if (contactId != null && name != null && topic != null) {
+                        contactList.add(name); // Añadir el nombre a la lista de contactos
+                        contactIdMap.put(name, contactId); // Mapear el nombre con el ID del contacto
+                        contactIdMap.put(name + "_topic", topic); // Mapear el tópico del contacto
+                    }
                 }
+
+                adapter.notifyDataSetChanged(); // Notificar al adaptador para actualizar la vista
             }
 
             @Override
@@ -105,27 +133,27 @@ public class activity_contacts extends AppCompatActivity {
         });
     }
 
-    // Cargar detalles de un contacto (nombre)
-    private void loadContactDetails(String contactId) {
-        databaseReference.child("users").child(contactId).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()) {
-                    // Recuperar el nombre del contacto
-                    String name = snapshot.child("name").getValue(String.class);
-                    if (name != null) {
-                        contactList.add(name); // Añadir el nombre a la lista de contactos
-                        contactIdMap.put(name, contactId); // Guardar el ID del contacto asociado al nombre
-                        adapter.notifyDataSetChanged(); // Notificar al adaptador para actualizar la vista
-                    }
-                }
-            }
+    // Método para mostrar el diálogo de confirmación de eliminación
+    private void showDeleteContactDialog(String contactName, String contactId) {
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Eliminar contacto")
+                .setMessage("¿Estás seguro de que deseas eliminar el contacto \"" + contactName + "\"?")
+                .setPositiveButton("Sí", (dialog, which) -> deleteContact(contactId))
+                .setNegativeButton("No", null)
+                .show();
+    }
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(activity_contacts.this, "Error al cargar detalles de contacto", Toast.LENGTH_SHORT).show();
-            }
-        });
+    // Método para eliminar un contacto de Firebase
+    private void deleteContact(String contactId) {
+        String currentUserId = firebaseAuth.getCurrentUser().getUid();
+        DatabaseReference contactRef = databaseReference.child("users").child(currentUserId).child("contacts").child(contactId);
+
+        contactRef.removeValue()
+                .addOnSuccessListener(unused -> {
+                    Toast.makeText(activity_contacts.this, "Contacto eliminado con éxito", Toast.LENGTH_SHORT).show();
+                    loadContacts(); // Recargar la lista de contactos
+                })
+                .addOnFailureListener(e -> Toast.makeText(activity_contacts.this, "Error al eliminar el contacto", Toast.LENGTH_SHORT).show());
     }
 
     // Método para agregar un nuevo contacto
@@ -171,9 +199,16 @@ public class activity_contacts extends AppCompatActivity {
 
     // Abrir la actividad de chat
     private void openChatActivity(String contactName, String contactId) {
-        Intent intent = new Intent(activity_contacts.this, ChatActivity.class);
-        intent.putExtra("contact_name", contactName); // Pasar el nombre del contacto
-        intent.putExtra("contact_id", contactId); // Pasar el ID del contacto
-        startActivity(intent);
+        String contactTopic = contactIdMap.get(contactName + "_topic"); // Recuperar el tópico del contacto
+
+        if (contactTopic != null) {
+            Intent intent = new Intent(activity_contacts.this, ChatActivity.class);
+            intent.putExtra("contact_name", contactName);
+            intent.putExtra("contact_id", contactId);
+            intent.putExtra("contact_topic", contactTopic); // Pasar el tópico
+            startActivity(intent);
+        } else {
+            Toast.makeText(this, "Error: No se pudo obtener el tópico del contacto", Toast.LENGTH_SHORT).show();
+        }
     }
 }

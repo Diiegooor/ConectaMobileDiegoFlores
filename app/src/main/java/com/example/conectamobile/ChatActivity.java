@@ -37,9 +37,9 @@ public class ChatActivity extends AppCompatActivity {
 
     private String contactName;
     private String contactId;
+    private String contactTopic;
     private FirebaseAuth firebaseAuth;
     private DatabaseReference databaseReference;
-    private String chatKey;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,12 +51,15 @@ public class ChatActivity extends AppCompatActivity {
         sendButton = findViewById(R.id.sendButton);
         messagesListView = findViewById(R.id.messagesListView);
 
-        // Obtener el nombre y ID del contacto
+        // Obtener el nombre, ID y tópico del contacto desde el Intent
         contactName = getIntent().getStringExtra("contact_name");
         contactId = getIntent().getStringExtra("contact_id");
+        contactTopic = getIntent().getStringExtra("contact_topic");
 
-        if (contactId == null) {
-            Toast.makeText(this, "Error: contactId es null", Toast.LENGTH_SHORT).show();
+        Log.d("ChatActivity", "contactName: " + contactName + ", contactId: " + contactId + ", contactTopic: " + contactTopic);
+
+        if (contactId == null || contactTopic == null) {
+            Toast.makeText(this, "Error: Faltan datos del contacto", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -64,17 +67,6 @@ public class ChatActivity extends AppCompatActivity {
         // Inicializar Firebase Auth y DatabaseReference
         firebaseAuth = FirebaseAuth.getInstance();
         databaseReference = FirebaseDatabase.getInstance().getReference();
-
-        String currentUserId = firebaseAuth.getCurrentUser().getUid();
-
-        if (currentUserId == null) {
-            Toast.makeText(this, "Error: currentUserId es null", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
-
-        // Crear una clave única para el chat
-        chatKey = currentUserId.compareTo(contactId) < 0 ? currentUserId + "_" + contactId : contactId + "_" + currentUserId;
 
         // Configurar la lista de mensajes
         messagesList = new ArrayList<>();
@@ -99,8 +91,9 @@ public class ChatActivity extends AppCompatActivity {
             mqttClient.setCallback(new MqttCallbackHandler());
             mqttClient.connect(mqttConnectOptions);
 
-            // Suscribirse al canal del chat
-            mqttClient.subscribe("chat/messages/" + chatKey);
+            // Suscribirse al canal del chat (tópico del contacto)
+            mqttClient.subscribe(contactTopic);
+            Toast.makeText(this, "Suscrito al tópico: " + contactTopic, Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(this, "Error al conectar con MQTT", Toast.LENGTH_SHORT).show();
@@ -108,7 +101,7 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void loadMessages() {
-        DatabaseReference messagesRef = databaseReference.child("messages").child(chatKey);
+        DatabaseReference messagesRef = databaseReference.child("messages").child(contactTopic);
 
         messagesRef.addValueEventListener(new ValueEventListener() {
             @Override
@@ -143,7 +136,7 @@ public class ChatActivity extends AppCompatActivity {
             // Crear un mensaje MQTT
             MqttMessage mqttMessage = new MqttMessage(message.getBytes());
             mqttMessage.setQos(1);
-            mqttClient.publish("chat/messages/" + chatKey, mqttMessage);
+            mqttClient.publish(contactTopic, mqttMessage); // Publicar en el tópico del contacto
 
             // Almacenar el mensaje en Firebase
             storeMessageInDatabase(message);
@@ -151,6 +144,7 @@ public class ChatActivity extends AppCompatActivity {
             // Agregar el mensaje localmente
             messagesList.add("Tú: " + message);
             adapter.notifyDataSetChanged();
+            messagesListView.setSelection(messagesList.size() - 1); // Scroll al último mensaje
 
             // Limpiar el campo de entrada
             messageInput.setText("");
@@ -161,9 +155,10 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+
     private void storeMessageInDatabase(String messageContent) {
         String currentUserId = firebaseAuth.getCurrentUser().getUid();
-        DatabaseReference messageRef = databaseReference.child("messages").child(chatKey).push();
+        DatabaseReference messageRef = databaseReference.child("messages").child(contactTopic).push();
 
         Message newMessage = new Message(currentUserId, contactId, messageContent);
         messageRef.setValue(newMessage)
@@ -180,14 +175,20 @@ public class ChatActivity extends AppCompatActivity {
 
         @Override
         public void messageArrived(String topic, MqttMessage message) throws Exception {
-            messagesList.add(contactName + ": " + new String(message.getPayload()));
-            adapter.notifyDataSetChanged();
+            // Agregar el mensaje recibido a la lista
+            String receivedMessage = new String(message.getPayload());
+            messagesList.add(contactName + ": " + receivedMessage);
+            runOnUiThread(() -> {
+                adapter.notifyDataSetChanged();
+                messagesListView.setSelection(messagesList.size() - 1); // Scroll al último mensaje
+            });
         }
 
         @Override
         public void deliveryComplete(org.eclipse.paho.client.mqttv3.IMqttDeliveryToken token) {
         }
     }
+
 
     @Override
     protected void onDestroy() {
